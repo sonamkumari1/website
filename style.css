@@ -214,6 +214,7 @@ p {
   .content {
     display: grid;
     inline-size: 100%;
+    cursor: pointer;
     place-items: center;
     padding-block: var(--size-7);
     padding-inline: var(--size-5);
@@ -231,6 +232,7 @@ p {
 
   .mobile-visual {
     inline-size: 100%;
+    cursor: pointer;
     aspect-ratio: var(--ratio-square);
 
     @media (width >=960px) {
