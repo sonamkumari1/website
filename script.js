@@ -1,93 +1,91 @@
-class Paper {
-  holdingPaper = false;
-  mouseTouchX = 0;
-  mouseTouchY = 0;
-  mouseX = 0;
-  mouseY = 0;
-  prevMouseX = 0;
-  prevMouseY = 0;
-  velX = 0;
-  velY = 0;
-  rotation = Math.random() * 30 - 15;
-  currentPaperX = 0;
-  currentPaperY = 0;
-  rotating = false;
+class DragAndDrop {
+  isDragging = false;
+  holdingElement = false;
+  startX = 0;
+  startY = 0;
+  currentX = 0;
+  currentY = 0;
+  offsetX = 0;
+  offsetY = 0;
+  touchStartY = 0;
 
-  init(paper) {
-    // Mouse and touch event handlers
-    const handleMove = (e) => {
-      const isTouch = e.type.startsWith("touch");
-      const clientX = isTouch ? e.touches[0].clientX : e.clientX;
-      const clientY = isTouch ? e.touches[0].clientY : e.clientY;
+  constructor(element) {
+    this.element = element;
+    this.init();
+  }
 
-      if (!this.rotating) {
-        this.mouseX = clientX;
-        this.mouseY = clientY;
-        this.velX = this.mouseX - this.prevMouseX;
-        this.velY = this.mouseY - this.prevMouseY;
+  init() {
+    this.element.addEventListener("mousedown", this.handleStart.bind(this));
+    this.element.addEventListener("touchstart", this.handleStart.bind(this), { passive: false });
+
+    document.addEventListener("mousemove", this.handleMove.bind(this));
+    document.addEventListener("touchmove", this.handleMove.bind(this), { passive: false });
+
+    document.addEventListener("mouseup", this.handleEnd.bind(this));
+    document.addEventListener("touchend", this.handleEnd.bind(this));
+  }
+
+  handleStart(event) {
+    const isTouch = event.type === "touchstart";
+    const clientX = isTouch ? event.touches[0].clientX : event.clientX;
+    const clientY = isTouch ? event.touches[0].clientY : event.clientY;
+
+    this.holdingElement = true;
+    this.isDragging = false;
+
+    this.startX = clientX;
+    this.startY = clientY;
+    this.currentX = clientX;
+    this.currentY = clientY;
+
+    // For mobile scrolling detection
+    if (isTouch) {
+      this.touchStartY = clientY;
+    }
+  }
+
+  handleMove(event) {
+    if (!this.holdingElement) return;
+
+    const isTouch = event.type === "touchmove";
+    const clientX = isTouch ? event.touches[0].clientX : event.clientX;
+    const clientY = isTouch ? event.touches[0].clientY : event.clientY;
+
+    // Detect if the user is scrolling on mobile
+    if (isTouch) {
+      const verticalMove = Math.abs(clientY - this.touchStartY);
+      if (verticalMove > 10 && !this.isDragging) {
+        // If vertical movement is significant, treat as scroll
+        this.holdingElement = false;
+        return;
       }
+    }
 
-      const dirX = clientX - this.mouseTouchX;
-      const dirY = clientY - this.mouseTouchY;
-      const dirLength = Math.sqrt(dirX * dirX + dirY * dirY);
-      const dirNormalizedX = dirX / dirLength;
-      const dirNormalizedY = dirY / dirLength;
-      const angle = Math.atan2(dirNormalizedY, dirNormalizedX);
-      let degrees = (360 + Math.round((180 * angle) / Math.PI)) % 360;
+    // Update dragging state
+    this.isDragging = true;
 
-      if (this.rotating) {
-        this.rotation = degrees;
-      }
+    this.offsetX = clientX - this.currentX;
+    this.offsetY = clientY - this.currentY;
 
-      if (this.holdingPaper) {
-        if (!this.rotating) {
-          this.currentPaperX += this.velX;
-          this.currentPaperY += this.velY;
-        }
-        this.prevMouseX = this.mouseX;
-        this.prevMouseY = this.mouseY;
-        paper.style.transform = `translateX(${this.currentPaperX}px) translateY(${this.currentPaperY}px) rotateZ(${this.rotation}deg)`;
-      }
-    };
+    this.currentX = clientX;
+    this.currentY = clientY;
 
-    const handleStart = (e) => {
-      const isTouch = e.type === "touchstart";
-      const clientX = isTouch ? e.touches[0].clientX : e.clientX;
-      const clientY = isTouch ? e.touches[0].clientY : e.clientY;
+    // Move the element
+    this.element.style.transform = `translate(${this.offsetX}px, ${this.offsetY}px)`;
+    event.preventDefault(); // Prevent scrolling during dragging
+  }
 
-      if (this.holdingPaper) return;
-      this.holdingPaper = true;
-      paper.style.zIndex = highestZ;
-      highestZ += 1;
+  handleEnd() {
+    if (this.isDragging) {
+      // Perform any necessary cleanup after dragging
+    }
 
-      this.mouseTouchX = clientX;
-      this.mouseTouchY = clientY;
-      this.prevMouseX = clientX;
-      this.prevMouseY = clientY;
-
-      if (!isTouch && e.button === 2) {
-        this.rotating = true;
-      }
-    };
-
-    const handleEnd = () => {
-      this.holdingPaper = false;
-      this.rotating = false;
-    };
-
-    // Add mouse and touch event listeners
-    document.addEventListener("mousemove", handleMove);
-    document.addEventListener("touchmove", handleMove, { passive: false });
-    paper.addEventListener("mousedown", handleStart);
-    paper.addEventListener("touchstart", handleStart, { passive: false });
-    window.addEventListener("mouseup", handleEnd);
-    window.addEventListener("touchend", handleEnd);
+    this.holdingElement = false;
+    this.isDragging = false;
   }
 }
 
-// Initialize papers
-const papers = Array.from(document.querySelectorAll(".paper"));
-papers.forEach((paper) => {
-  const p = new Paper();
-  p.init(paper);
+// Initialize drag-and-drop on elements
+document.querySelectorAll(".draggable").forEach((element) => {
+  new DragAndDrop(element);
 });
